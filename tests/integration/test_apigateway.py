@@ -5,7 +5,6 @@ import os
 import re
 from collections import namedtuple
 from typing import Callable, Optional
-from unittest.mock import patch
 
 import pytest
 import xmltodict
@@ -65,6 +64,7 @@ THIS_FOLDER = os.path.dirname(os.path.realpath(__file__))
 TEST_SWAGGER_FILE_JSON = os.path.join(THIS_FOLDER, "files", "swagger.json")
 TEST_SWAGGER_FILE_YAML = os.path.join(THIS_FOLDER, "files", "swagger.yaml")
 TEST_IMPORT_REST_API_FILE = os.path.join(THIS_FOLDER, "files", "pets.json")
+TEST_IMPORT_PETSTORE_SWAGGER = os.path.join(THIS_FOLDER, "files", "petstore-swagger.json")
 
 ApiGatewayLambdaProxyIntegrationTestResult = namedtuple(
     "ApiGatewayLambdaProxyIntegrationTestResult",
@@ -264,12 +264,10 @@ class TestAPIGateway:
         assert 1 == len(messages)
         assert test_data == json.loads(base64.b64decode(messages[0]["Body"]))
 
-    def test_api_gateway_http_integrations(self):
-        self.run_api_gateway_http_integration("custom")
-        self.run_api_gateway_http_integration("proxy")
+    @pytest.mark.parametrize("int_type", ["custom", "proxy"])
+    def test_api_gateway_http_integrations(self, int_type, monkeypatch):
+        monkeypatch.setattr(config, "DISABLE_CUSTOM_CORS_APIGATEWAY", False)
 
-    @patch.object(config, "DISABLE_CUSTOM_CORS_APIGATEWAY", False)
-    def run_api_gateway_http_integration(self, int_type):
         test_port = get_free_tcp_port()
         backend_url = "http://localhost:%s%s" % (test_port, self.API_PATH_HTTP_BACKEND)
 
@@ -560,7 +558,6 @@ class TestAPIGateway:
         integration_keys = [
             "httpMethod",
             "type",
-            "passthroughBehavior",
             "cacheKeyParameters",
             "uri",
             "cacheNamespace",
@@ -1777,7 +1774,7 @@ def test_import_swagger_api(apigateway_client):
     methods = {kk[0] for k, v in resource_methods.items() for kk in v.items()}
     assert methods == {"POST", "OPTIONS", "GET"}
 
-    assert resource_methods.get("/").get("GET").method_responses == {
+    assert resource_methods.get("/").get("GET")["methodResponses"] == {
         "200": {
             "statusCode": "200",
             "responseModels": None,
@@ -1785,7 +1782,7 @@ def test_import_swagger_api(apigateway_client):
         }
     }
 
-    assert resource_methods.get("pets").get("GET").method_responses == {
+    assert resource_methods.get("pets").get("GET")["methodResponses"] == {
         "200": {
             "responseModels": {
                 "application/json": {
