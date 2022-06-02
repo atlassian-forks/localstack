@@ -997,10 +997,25 @@ class TestCloudFormation:
         rs = events_client.list_rules()
         assert rule["Name"] not in [r["Name"] for r in rs["Rules"]]
 
-    def test_cfn_handle_s3_notification_configuration(self, s3_client, deploy_cfn_template):
+    @pytest.mark.parametrize(
+        "create_bucket_first, region", [(True, "eu-west-1"), (False, "us-east-1")]
+    )
+    def test_cfn_handle_s3_notification_configuration(
+        self,
+        region,
+        create_boto_client,
+        deploy_cfn_template,
+        create_bucket_first,
+    ):
+        s3_client = create_boto_client("s3", region_name=region)
         bucket_name = f"target-{short_uid()}"
         queue_name = f"queue-{short_uid()}"
-        queue_arn = aws_stack.sqs_queue_arn(queue_name)
+        queue_arn = aws_stack.sqs_queue_arn(queue_name, region_name=s3_client.meta.region_name)
+        if create_bucket_first:
+            s3_client.create_bucket(
+                Bucket=bucket_name,
+                CreateBucketConfiguration={"LocationConstraint": s3_client.meta.region_name},
+            )
         stack = deploy_cfn_template(
             template=TEST_TEMPLATE_17 % (queue_name, bucket_name, queue_arn),
         )
@@ -1779,6 +1794,17 @@ class TestCloudFormation:
 
         # CloudFormation will create more than one route table 2 in template + default
         assert len(route_table["Associations"]) == 3
+
+        # assert subnet attributes are present
+        vpc_id = stack.outputs["VpcId"]
+        response = ec2_client.describe_subnets(Filters=[{"Name": "vpc-id", "Values": [vpc_id]}])
+        subnets = response["Subnets"]
+        subnet1 = [sub for sub in subnets if sub["CidrBlock"] == "100.0.0.0/24"][0]
+        subnet2 = [sub for sub in subnets if sub["CidrBlock"] == "100.0.2.0/24"][0]
+        assert subnet1["AssignIpv6AddressOnCreation"] is True
+        assert subnet1["EnableDns64"] is True
+        assert subnet1["MapPublicIpOnLaunch"] is True
+        assert subnet2["PrivateDnsNameOptionsOnLaunch"]["HostnameType"] == "ip-name"
 
     def test_resolve_transitive_placeholders_in_strings(self, sqs_client, deploy_cfn_template):
         queue_name = f"q-{short_uid()}"
