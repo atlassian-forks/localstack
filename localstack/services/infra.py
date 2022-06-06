@@ -10,9 +10,8 @@ from typing import Dict, List, Union
 
 import boto3
 from localstack_client.config import get_service_port
-from moto.core import BaseModel
+from moto.core import BaseModel, get_account_id
 from moto.core.base_backend import InstanceTrackerMeta
-from moto.core.models import get_account_id
 
 from localstack import config, constants
 from localstack.constants import ENV_DEV, LOCALSTACK_INFRA_PROCESS, LOCALSTACK_VENV_FOLDER
@@ -120,6 +119,11 @@ def get_multiserver_or_free_service_port():
     if config.FORWARD_EDGE_INMEM:
         return multiserver.get_moto_server_port()
     return get_free_tcp_port()
+
+
+def get_aws_account_id() -> str:
+    """Return the AWS account ID."""
+    return get_account_id()
 
 
 def register_signal_handlers():
@@ -311,7 +315,7 @@ def log_startup_message(service):
 
 def check_aws_credentials():
     # Setup AWS environment vars, these are used by Boto when LocalStack makes internal cross-service calls
-    os.environ["AWS_ACCESS_KEY_ID"] = get_account_id()
+    os.environ["AWS_ACCESS_KEY_ID"] = get_aws_account_id()
     os.environ["AWS_SECRET_ACCESS_KEY"] = constants.INTERNAL_AWS_SECRET_ACCESS_KEY
     session = boto3.Session()
     credentials = session.get_credentials()
