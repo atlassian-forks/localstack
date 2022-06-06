@@ -36,7 +36,6 @@ from localstack.services.awslambda.lambda_utils import (
     LAMBDA_RUNTIME_PYTHON39,
     LAMBDA_RUNTIME_RUBY27,
 )
-from localstack.services.infra import get_aws_account_id
 from localstack.services.install import (
     GO_RUNTIME_VERSION,
     INSTALL_PATH_LOCALSTACK_FAT_JAR,
@@ -45,6 +44,7 @@ from localstack.services.install import (
 )
 from localstack.testing.aws.util import get_lambda_logs
 from localstack.utils import testutil
+from localstack.utils.accounts import get_aws_account_id
 from localstack.utils.aws import aws_stack
 from localstack.utils.common import (
     cp_r,

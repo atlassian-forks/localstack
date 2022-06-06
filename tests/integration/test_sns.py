@@ -12,10 +12,11 @@ from localstack import config
 from localstack.config import external_service_url
 from localstack.http import Request
 from localstack.services.generic_proxy import ProxyListener
-from localstack.services.infra import get_aws_account_id, start_proxy
+from localstack.services.infra import start_proxy
 from localstack.services.install import SQS_BACKEND_IMPL
 from localstack.services.sns.provider import SNSBackend
 from localstack.utils import testutil
+from localstack.utils.accounts import get_aws_account_id
 from localstack.utils.aws import aws_stack
 from localstack.utils.common import (
     get_free_tcp_port,
