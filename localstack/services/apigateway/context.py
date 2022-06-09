@@ -58,6 +58,9 @@ class ApiInvocationContext:
 
     stage_variables: Dict
 
+    # websockets route selection
+    ws_route: str
+
     def __init__(
         self,
         method,
@@ -86,6 +89,7 @@ class ApiInvocationContext:
         self.response_templates = {}
         self.stage_variables = {}
         self.path_params = {}
+        self.ws_route = None
 
     @property
     def resource_id(self) -> Optional[str]:
